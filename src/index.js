@@ -1,53 +1,105 @@
 import './css/styles.css';
-import { Notify } from 'notiflix/build/notiflix-notify-aio';
-import API from './fetchCountries'; // * це файлик з fetch
-import { getRefs } from './getRefs'; // * тут лежать посилання на елементи
-import { list, card } from './markup'; // * тут народжується HTML
+import SimpleLightbox from "simplelightbox";
+import "simplelightbox/dist/simple-lightbox.min.css";
+import { firstFetch, onFetchError, inputValueEmpty, moreThanTotalHits } from './js/notify'; // * мої вспливашкі
+import { getRefs } from './js/getRefs'; // * тут лежать посилання на елементи
+import { img } from './js/markup'; // * тут народжується HTML
+
+import NewPicturesAPI from './js/picturesApi'; // * це файлик з fetch
+import LoadMoreBtn from './js/loadMoreBtn';
+
 
 var _debounce = require('lodash.debounce');
 const DEBOUNCE_DELAY = 300;
 
 const refs = getRefs();
 
-refs.searchBox.addEventListener('input', _debounce(onSearchBoxInput, DEBOUNCE_DELAY));
+const newPicturesAPI = new NewPicturesAPI();
+const loadMoreBtn = new LoadMoreBtn({
+  selector: '.load-more',
+  hidden: true,
+});
 
-function onSearchBoxInput(event) { // * власне мій інпут
-  const inputValue = event.target.value;
+refs.searchForm.addEventListener('submit', onSearch);
+loadMoreBtn.refs.button.addEventListener('click', onLoadMoreBtn);
+
+function onSearch(event) { // * це клік на сабміт
+  event.preventDefault();
+
+  const inputValue = event.currentTarget.elements.searchQuery.value;
+  newPicturesAPI.query = inputValue;
+  newPicturesAPI.resetPage();
+
   if (inputValue.length < 1) {
+    console.log('error');
     inputValueEmpty();
   } else {
-    API.fetchCountries(inputValue.trim())
-      .then(renderMarkup)
-      .catch(onFetchError);
-  }
-}
-
-function renderMarkup(countries) { // * рендер розмітки
-  if (countries.length > 10) {
+    loadMoreBtn.show();
     clearMarkup();
-    Notify.info('Too many matches found. Please enter a more specific name.', { timeout: 2000 });
-    return;
-  } else if (countries.length === 1) {
-    refs.countryList.innerHTML = '';
-    return countries.map(country => refs.countryInfo.innerHTML = card(country));
-  } else {
-    refs.countryInfo.innerHTML = '';
-    const markup = countries.map(country => list(country)).join('');
-    return refs.countryList.innerHTML = markup;
+    fetchPictures();
   }
 }
 
-function onFetchError() { // * якщо ввести беліберду
-  clearMarkup();
-  Notify.failure('Oops, there is no country with that name', { timeout: 2000 });
+let counterVal = 0; // * всім костилям костиль
+
+function onLoadMoreBtn() {
+  incrementClick();
+
+  if (counterVal === 13) {
+    moreThanTotalHits();
+    loadMoreBtn.done();
+    return;
+  } else {
+    fetchPictures();
+  }
 }
 
-function inputValueEmpty() { // * пустий інпут
-  clearMarkup();
-  Notify.failure('type something', { timeout: 2000 });
+function incrementClick() {
+  counterVal += 1;
+  console.log('counterVal: ', counterVal);
+
+}
+
+function fetchPictures() {
+  loadMoreBtn.disable();
+  newPicturesAPI.fetchPictures()
+    .then(pictures => {
+      renderMarkup(pictures);
+      let gallery = new SimpleLightbox('.gallery a', {});
+      loadMoreBtn.enable();
+      if (newPicturesAPI.page > 2) {
+        scrollBy();
+      }
+    })
+    .catch(onFetchError);
+}
+
+function renderMarkup(pictures) { // * рендер розмітки  
+
+  if (pictures.hits.length < 1) { // * це пустий інпут
+    onFetchError();
+    return;
+  }
+
+  if (newPicturesAPI.page === 2) { // * вспливашка кількості зображень
+    firstFetch(pictures.totalHits);
+  }
+
+  const markup = pictures.hits.map(picture => img(picture)).join('');
+  return refs.galleryContainer.insertAdjacentHTML('beforeend', markup);
+}
+
+function scrollBy() {
+  const { height: cardHeight } = document
+    .querySelector(".gallery")
+    .firstElementChild.getBoundingClientRect();
+
+  window.scrollBy({
+    top: cardHeight * 2,
+    behavior: "smooth",
+  });
 }
 
 function clearMarkup() { // * очищення розмітки
-  refs.countryList.innerHTML = '';
-  refs.countryInfo.innerHTML = '';
+  refs.galleryContainer.innerHTML = '';
 }
