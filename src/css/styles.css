@@ -85,7 +85,6 @@ button {
   box-shadow: none;
 }
 
-/* ? */
 .load-more.is-hidden {
   display: none;
 }
@@ -156,7 +155,6 @@ button {
   position: relative;
 }
 
-/* ? */
 .preloader.is-hidden {
   display: none;
 }

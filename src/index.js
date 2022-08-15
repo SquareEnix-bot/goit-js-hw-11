@@ -8,17 +8,16 @@ import { img } from './js/markup'; // * тут народжується HTML
 import NewPicturesAPI from './js/picturesApi'; // * це файлик з fetch
 import LoadMoreBtn from './js/loadMoreBtn';
 
-
-var _debounce = require('lodash.debounce');
-const DEBOUNCE_DELAY = 300;
-
 const refs = getRefs();
 
 const newPicturesAPI = new NewPicturesAPI();
+
 const loadMoreBtn = new LoadMoreBtn({
   selector: '.load-more',
   hidden: true,
 });
+
+let counterVal = 0; // * всім костилям костиль
 
 refs.searchForm.addEventListener('submit', onSearch);
 loadMoreBtn.refs.button.addEventListener('click', onLoadMoreBtn);
@@ -30,17 +29,14 @@ function onSearch(event) { // * це клік на сабміт
   newPicturesAPI.query = inputValue;
   newPicturesAPI.resetPage();
 
-  if (inputValue.length < 1) {
-    console.log('error');
+  if (inputValue.length === 0) {
     inputValueEmpty();
-  } else {
-    loadMoreBtn.show();
-    clearMarkup();
-    fetchPictures();
+    return;
   }
-}
 
-let counterVal = 0; // * всім костилям костиль
+  clearMarkup();
+  fetchPictures();
+}
 
 function onLoadMoreBtn() {
   incrementClick();
@@ -56,31 +52,27 @@ function onLoadMoreBtn() {
 
 function incrementClick() {
   counterVal += 1;
-  console.log('counterVal: ', counterVal);
-
 }
 
 function fetchPictures() {
+  loadMoreBtn.show();
   loadMoreBtn.disable();
   newPicturesAPI.fetchPictures()
     .then(pictures => {
+      if (pictures.hits.length < 1) { // * введення нісенітниці        
+        onFetchError();
+        return;
+      }
       renderMarkup(pictures);
       let gallery = new SimpleLightbox('.gallery a', {});
       loadMoreBtn.enable();
       if (newPicturesAPI.page > 2) {
         scrollBy();
       }
-    })
-    .catch(onFetchError);
+    });
 }
 
-function renderMarkup(pictures) { // * рендер розмітки  
-
-  if (pictures.hits.length < 1) { // * це пустий інпут
-    onFetchError();
-    return;
-  }
-
+function renderMarkup(pictures) { // * рендер розмітки
   if (newPicturesAPI.page === 2) { // * вспливашка кількості зображень
     firstFetch(pictures.totalHits);
   }
@@ -89,7 +81,7 @@ function renderMarkup(pictures) { // * рендер розмітки
   return refs.galleryContainer.insertAdjacentHTML('beforeend', markup);
 }
 
-function scrollBy() {
+function scrollBy() { // * скрол
   const { height: cardHeight } = document
     .querySelector(".gallery")
     .firstElementChild.getBoundingClientRect();
