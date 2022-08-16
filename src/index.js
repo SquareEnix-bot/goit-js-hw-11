@@ -54,12 +54,12 @@ function incrementClick() {
   counterVal += 1;
 }
 
-function fetchPictures() {
+async function fetchPictures() {
   loadMoreBtn.show();
   loadMoreBtn.disable();
-  newPicturesAPI.fetchPictures()
+  await newPicturesAPI.fetchPictures()
     .then(pictures => {
-      if (pictures.hits.length < 1) { // * введення нісенітниці        
+      if (pictures.hits.length < 1) { // * введення нісенітниці
         onFetchError();
         return;
       }

@@ -19,14 +19,14 @@ export default class PicturesApi {
     try {
       const response = await axios.get(url);
       this.page += 1;
-      return response.data;
+      return await response.data;
     } catch (error) {
       console.error('Error: ', error);
     }
   }
 
-  // * before async/await
-  // fetchPictures() { 
+  // ? before async/await
+  // fetchPictures() {
   //   const GET_URL = 'https://pixabay.com/api/';
   //   const API_KEY = 'key=29230228-70eed17d551abdaa1dfb16eb3';
   //   const IMAGE_TYPE = 'image_type=photo';
