@@ -65,7 +65,11 @@ async function fetchPictures() {
       }
       renderMarkup(pictures);
       let gallery = new SimpleLightbox('.gallery a', {});
-      loadMoreBtn.enable();
+      if (pictures.hits.length < 40) { // * якщо картинок менше ніж 40
+        loadMoreBtn.done();
+      } else {
+        loadMoreBtn.enable();
+      }
       if (newPicturesAPI.page > 2) {
         scrollBy();
       }
